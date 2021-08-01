@@ -1,0 +1,23 @@
+{
+  "name": "discord.ui",
+  "version": "1.0.0",
+  "description": "Create useful UI Interfaces based on Discord Embeds!",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "keywords": [],
+  "author": "fagnersales",
+  "files": [
+    "/dist"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^16.3.1",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "dotenv": "^10.0.0",
+    "tsconfig-paths": "^3.10.1"
+  }
+}
