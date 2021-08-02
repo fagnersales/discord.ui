@@ -1,6 +1,6 @@
 {
   "name": "dsc-ui",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Create useful UI Interfaces based on Discord Embeds!",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
