@@ -1,7 +1,7 @@
-import { Message, MessageReaction, User } from 'discord.js'
+import { MessageReaction, User } from 'discord.js'
 import { BaseConstructor, Base, BaseSetupDTO } from './Base'
 import { once } from 'events'
-import { hasClientReaction, reactedWithEmoji } from '@src/utils'
+import { hasClientReaction, isMessageUsable, reactedWithEmoji } from '@src/utils'
 
 export type ListFieldConstructor = BaseConstructor & {
   key: string
@@ -96,7 +96,7 @@ export class ListField extends Base {
 
     const usedMessage = await channel.send(content)
 
-    Promise.all(emojis.map(emoji => usedMessage.react(emoji)))
+    Promise.all(emojis.map(async emoji => isMessageUsable(usedMessage) && usedMessage.react(emoji)))
 
     const userReactions = () => {
       const reactions = usedMessage.reactions.cache
@@ -125,7 +125,7 @@ export class ListField extends Base {
       confirmFilter, { max: 1, time: options?.time }
     )
 
-    if (canConfirm()) usedMessage.react(confirmEmoji)
+    if (canConfirm()) isMessageUsable(usedMessage) && usedMessage.react(confirmEmoji)
 
     const listFilter = (messageReaction: MessageReaction, reactedUser: User) => (
       reactedUser.equals(user) &&
@@ -138,7 +138,7 @@ export class ListField extends Base {
 
     const checkConfirmReaction = () => {
       if (canConfirm()) {
-        usedMessage.react(confirmEmoji)
+        isMessageUsable(usedMessage) && usedMessage.react(confirmEmoji)
         this.completed = true
       } else {
         const reaction = usedMessage.reactions.cache.find(reaction => (

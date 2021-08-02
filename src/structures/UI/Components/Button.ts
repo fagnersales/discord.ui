@@ -1,6 +1,6 @@
+import { isMessageUsable } from '@src/utils'
 import { Message, MessageReaction, User } from 'discord.js'
 import { once } from 'events'
-import { EventEmitter } from 'stream'
 import { UI } from '../UI'
 import { Base, BaseConstructor, BaseSetupDTO } from './Base'
 
@@ -60,7 +60,7 @@ export abstract class Button<Extra = any> extends Base {
 
 
   async setup({ usedMessage, user }: ButtonSetupDTO, options?: ButtonSetupOptions): Promise<boolean> {
-    await usedMessage.react(this.emoji)
+    await isMessageUsable(usedMessage) && usedMessage.react(this.emoji)
 
     const collectorFilter = (messageReaction: MessageReaction, userReaction: User) => (
       this.activated &&

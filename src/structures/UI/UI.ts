@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { Message, MessageEmbed, MessageReaction, TextChannel, User } from 'discord.js'
+import { Message, MessageEmbed, TextChannel, User } from 'discord.js'
 import { Button, ButtonSetupOptions, ListField } from './Components'
 import { ContentField, ContentFieldSetupOptions } from './Components'
 import { Base } from './Components/Base'
@@ -178,18 +178,21 @@ export class UI extends EventEmitter {
     }
 
     if (!this.buttons.length && this.isCompleted()) {
-      usedMessage.react('✅')
-      usedMessage.react('🔄')
+      isMessageUsable(usedMessage) && usedMessage.react('✅')
+      isMessageUsable(usedMessage) && usedMessage.react('🔄')
 
       const removeReactions = () => (
-        removeReaction(usedMessage, '✅'),
-        removeReaction(usedMessage, '🔄')
+        isMessageUsable(usedMessage) && removeReaction(usedMessage, '✅'),
+        isMessageUsable(usedMessage) && removeReaction(usedMessage, '🔄')
       )
 
       const genericOptions = { max: 1, time: 60000 }
 
-      const repeater = usedMessage.createReactionCollector(generalFilter('🔄'), genericOptions)
-      const finalizer = usedMessage.createReactionCollector(generalFilter('✅'), genericOptions)
+      const repeater = usedMessage
+        .createReactionCollector(generalFilter('🔄'), genericOptions)
+
+      const finalizer = usedMessage
+        .createReactionCollector(generalFilter('✅'), genericOptions)
 
       const stopCollectors = async () => (
         await removeReactions(),
@@ -233,7 +236,7 @@ export class UI extends EventEmitter {
       usedMessage.reactions.removeAll()
 
       if (data.canBack && isMessageUsable(usedMessage)) {
-        usedMessage.react('◀')
+        isMessageUsable(usedMessage) && usedMessage.react('◀')
 
         const backOptions = { max: 1, time: DEFAULT_TIME }
 

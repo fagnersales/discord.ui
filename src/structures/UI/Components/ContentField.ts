@@ -2,6 +2,7 @@ import { Base, BaseConstructor, BaseSetupDTO } from './Base'
 
 import { Message, MessageReaction, User } from 'discord.js'
 import { once } from 'events'
+import { isMessageUsable } from '@src/utils'
 
 export type ContentFieldFilter = (message: Message) => Promise<true | string>
 export type ContentFieldContentResolver = (message: Message) => Promise<string>
@@ -117,7 +118,7 @@ export class ContentField extends Base {
 
     const usedMessage = await data.channel.send(this.description)
 
-    if (!this.required || this._completed) await usedMessage.react(confirmationEmoji)
+    if (!this.required || this._completed) await isMessageUsable(usedMessage) && usedMessage.react(confirmationEmoji)
 
     const contentCollectorFilter = (message: Message) => (
       !!this.activated &&
@@ -147,17 +148,19 @@ export class ContentField extends Base {
       const result = await this.filter(message)
       
       if (typeof result === 'string') {
-        if (this.options?.removeAnswers) await message.delete()
+        if (this.options?.removeAnswers) isMessageUsable(message) && await message.delete()
 
         return data.channel.send(result)
-        .then((message) => message.delete({ timeout: 4000 }))
+        .then((message) => {
+          isMessageUsable(message) && message.delete({ timeout: 4000 })
+        })
       }
 
       await this.resolve(message)
-      await usedMessage.react(confirmationEmoji)
+      await isMessageUsable(usedMessage) && usedMessage.react(confirmationEmoji)
 
       if (this.options?.removeAnswers) {
-        confirmCollector.once('end', () => message.delete())
+        confirmCollector.once('end', () => isMessageUsable(usedMessage) && message.delete())
       }
     })
 
@@ -165,7 +168,7 @@ export class ContentField extends Base {
       this.deactivate()
       if (!contentCollector.ended) contentCollector.stop(reason)
       if (!confirmCollector.ended) confirmCollector.stop(reason)
-      if (usedMessage.deletable) usedMessage.delete()
+      if (usedMessage.deletable) isMessageUsable(usedMessage) && usedMessage.delete()
     })
     
     const result = await once(confirmCollector, 'end')
