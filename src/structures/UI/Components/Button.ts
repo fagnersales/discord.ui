@@ -90,7 +90,5 @@ export abstract class Button<Extra = any> extends Base {
     this.activated = true
   }
 
-  abstract clone(): Button
-
   abstract interact(data: ButtonInteractDTO): Promise<ButtonInteractResult>
 }
