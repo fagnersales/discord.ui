@@ -27,13 +27,13 @@ export class ListField extends Base {
   readonly key: ListFieldConstructor['key']
   readonly list: Record<string, { name: string, key: string }>
   readonly amount: ListFieldConstructor['amount']
-  readonly required: ListFieldConstructor['required']
-
+  
+  private _required: boolean = true
   private _value: string[] = []
   private _activated: boolean = false
   
   public content: string[] = []
-  public completed: boolean = false
+  private _completed: boolean = false
 
   constructor(data: ListFieldConstructor) {
     super({
@@ -42,7 +42,7 @@ export class ListField extends Base {
     })
     this.key = data.key
     this.amount = data.amount
-    this.required = data.required ?? true
+    this._required = data.required ?? true
 
     this.list = Object.keys(data.list).reduce((acc, cur) => {
       const value = data.list[cur]
@@ -52,6 +52,14 @@ export class ListField extends Base {
         return ({ ...acc, [cur]: value })
       }
     }, { } as Record<string, { name: string, key: string }>)
+  }
+
+  get completed(): boolean {
+    return this._completed
+  }
+
+  get required(): boolean {
+    return this._required
   }
 
   get value() {
@@ -78,7 +86,7 @@ export class ListField extends Base {
     this.deactivate()
     this._value = []
     this.content = []
-    this.completed = false
+    this._completed = false
   }
 
   isListField(): this is ListField {
@@ -109,7 +117,7 @@ export class ListField extends Base {
 
     const canConfirm = () => {
       const size = userReactions().size
-      if (!this.required && size === 0) return true 
+      if (!this._required && size === 0) return true 
       if (this.amount.specified) return size === this.amount.specified
       if (this.amount.moreThan) return size >= this.amount.moreThan 
       return false
@@ -139,7 +147,7 @@ export class ListField extends Base {
     const checkConfirmReaction = () => {
       if (canConfirm()) {
         isMessageUsable(usedMessage) && usedMessage.react(confirmEmoji)
-        this.completed = true
+        this._completed = true
       } else {
         const reaction = usedMessage.reactions.cache.find(reaction => (
           hasClientReaction(reaction) &&
@@ -148,7 +156,7 @@ export class ListField extends Base {
 
         if (reaction) reaction?.users.remove(usedMessage.client.user?.id as string)
 
-        this.completed = false
+        this._completed = false
       }
     }
 
@@ -161,7 +169,7 @@ export class ListField extends Base {
 
     this.value = values.map(value => value.key)
     this.content = values.map(value => value.name)
-    this.completed = true
+    this._completed = true
 
     return (usedMessage.deletable && usedMessage.delete(), result[1] === 'limit')
   }

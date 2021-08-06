@@ -64,7 +64,7 @@ export class ContentField extends Base {
     this.required = data.required ?? true
     this._content = data.placeholder || '...'
     this._activated = false
-    this._completed = !data.required
+    this._completed = false
   }
 
   get completed(): boolean {
@@ -88,7 +88,7 @@ export class ContentField extends Base {
   }
 
   clear() {
-    this._completed = !this.required
+    this._completed = false
     this._content = this.placeholder || '...'
     this.value = undefined
   }
@@ -118,7 +118,12 @@ export class ContentField extends Base {
 
     const usedMessage = await data.channel.send(this.description)
 
-    if (!this.required || this._completed) await isMessageUsable(usedMessage) && usedMessage.react(confirmationEmoji)
+    const canConfirm = () => (
+      this._activated &&
+      this.required ? this._completed : true
+    )
+
+    if (canConfirm()) await isMessageUsable(usedMessage) && usedMessage.react(confirmationEmoji)
 
     const contentCollectorFilter = (message: Message) => (
       !!this.activated &&
@@ -126,8 +131,7 @@ export class ContentField extends Base {
     )
 
     const confirmCollectorFilter = (messageReaction: MessageReaction, user: User) => (
-      this._activated &&
-      this._completed &&
+      canConfirm() &&
       data.user.equals(user) &&
       !!usedMessage.client.user?.id &&
       messageReaction.users.cache.has(usedMessage.client.user.id) &&
@@ -172,6 +176,8 @@ export class ContentField extends Base {
     })
     
     const result = await once(confirmCollector, 'end')
+
+    if (result[1] === 'limit') this._completed = true
 
     return (this.emit('stop'), result[1] === 'limit')
   }
