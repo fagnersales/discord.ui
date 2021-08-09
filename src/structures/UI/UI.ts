@@ -139,7 +139,7 @@ export class UI extends EventEmitter {
     const embed = createEmbed()
 
     const handleMessage = async () => {
-      if (!data.messageToUse) return data.channel.send(embed)
+      if (!data.messageToUse) return data.channel.send({ embeds: [embed] })
 
       if (data.removeReactions) await data.messageToUse.reactions.removeAll()
       
@@ -147,7 +147,7 @@ export class UI extends EventEmitter {
         throw new Error('The message to be used is either not editable or has been deleted')
       }
 
-      return await data.messageToUse.edit('', embed)
+      return await data.messageToUse.edit({ content: '', embeds: [embed] })
     }
 
     const usedMessage = await handleMessage()
@@ -160,7 +160,7 @@ export class UI extends EventEmitter {
         this.deactivateAllFields()
         component.activate()
 
-        await usedMessage.edit('', createEmbed())
+        await usedMessage.edit({ content: '', embeds: [createEmbed()] })
 
         const result = await component.setup({
           channel: data.channel,
@@ -173,7 +173,7 @@ export class UI extends EventEmitter {
           throw new Error('The message to be used is either not editable or has been deleted')
         }
 
-        await usedMessage.edit('', createEmbed())
+        await usedMessage.edit({ content: '', embeds: [createEmbed()] })
       }
     }
 
@@ -189,10 +189,10 @@ export class UI extends EventEmitter {
       const genericOptions = { max: 1, time: 60000 }
 
       const repeater = usedMessage
-        .createReactionCollector(generalFilter('🔄'), genericOptions)
+        .createReactionCollector({ filter: generalFilter('🔄'), ...genericOptions })
 
       const finalizer = usedMessage
-        .createReactionCollector(generalFilter('✅'), genericOptions)
+        .createReactionCollector({ filter: generalFilter('✅'), ...genericOptions })
 
       const stopCollectors = async () => (
         await removeReactions(),
@@ -240,7 +240,7 @@ export class UI extends EventEmitter {
 
         const backOptions = { max: 1, time: DEFAULT_TIME }
 
-        const backCollector = usedMessage.createReactionCollector(generalFilter('◀'), backOptions)
+        const backCollector = usedMessage.createReactionCollector({ filter: generalFilter('◀'), ...backOptions })
         
         backCollector.on('collect', () => {
           buttonClicked.deactivate()

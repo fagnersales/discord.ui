@@ -70,10 +70,10 @@ export abstract class Button<Extra = any> extends Base {
 
     const collectorOptions = { max: 1, time: options?.time }
 
-    const collector = usedMessage.createReactionCollector(
-      collectorFilter,
-      collectorOptions
-    )
+    const collector = usedMessage.createReactionCollector({
+      filter: collectorFilter,
+      ...collectorOptions
+    })
 
     const result = await once(collector, 'end')
 
@@ -84,7 +84,7 @@ export abstract class Button<Extra = any> extends Base {
     this.emit('deactivated')
     this.activated = false
   }
-  
+
   activate() {
     this.emit('activated')
     this.activated = true

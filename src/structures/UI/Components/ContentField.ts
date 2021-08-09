@@ -138,13 +138,13 @@ export class ContentField extends Base {
       (messageReaction.emoji.id || messageReaction.emoji.name)  === confirmationEmoji
     )
 
-    const confirmCollector = usedMessage.createReactionCollector(
-      confirmCollectorFilter, { max: 1, time: options?.time }
-    )
+    const confirmCollector = usedMessage.createReactionCollector({
+      filter: confirmCollectorFilter, max: 1, time: options?.time
+    })
 
-    const contentCollector = data.channel.createMessageCollector(
-      contentCollectorFilter, { time: options?.time }
-    )
+    const contentCollector = data.channel.createMessageCollector({
+      filter: contentCollectorFilter, time: options?.time
+    })
 
     contentCollector.on('collect', async (message: Message) => {
       await usedMessage.reactions.removeAll()
@@ -156,7 +156,7 @@ export class ContentField extends Base {
 
         return data.channel.send(result)
         .then((message) => {
-          isMessageUsable(message) && message.delete({ timeout: 4000 })
+          isMessageUsable(message) && setTimeout(() => message.delete(), 4000)
         })
       }
 

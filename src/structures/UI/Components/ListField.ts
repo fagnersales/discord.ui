@@ -129,20 +129,25 @@ export class ListField extends Base {
       reactedWithEmoji(messageReaction, confirmEmoji)
     )
 
-    const confirmCollector = usedMessage.createReactionCollector(
-      confirmFilter, { max: 1, time: options?.time }
-    )
+    const confirmCollector = usedMessage.createReactionCollector({
+      filter: confirmFilter, max: 1, time: options?.time
+    })
 
     if (canConfirm()) isMessageUsable(usedMessage) && usedMessage.react(confirmEmoji)
 
-    const listFilter = (messageReaction: MessageReaction, reactedUser: User) => (
-      reactedUser.equals(user) &&
-      emojis.includes(messageReaction.emoji.id || messageReaction.emoji.name)
-    )
+    const listFilter = (messageReaction: MessageReaction, reactedUser: User) => {
+      const idOrName = messageReaction.emoji.id || messageReaction.emoji.name
+      if (!idOrName) return false
 
-    const listCollector = usedMessage.createReactionCollector(
-      listFilter, { dispose: true, time: options?.time }
-    )
+      return (
+        reactedUser.equals(user) &&
+        emojis.includes(idOrName)
+      )
+    }
+
+    const listCollector = usedMessage.createReactionCollector({
+        filter: listFilter, dispose: true, time: options?.time
+      })
 
     const checkConfirmReaction = () => {
       if (canConfirm()) {
@@ -165,7 +170,10 @@ export class ListField extends Base {
 
     const result = await once(confirmCollector, 'end')
 
-    const values: ({ name: string, key: string })[] = userReactions().map(reaction => this.list[reaction.emoji.id || reaction.emoji.name]) 
+    const values: ({ name: string, key: string })[] = userReactions()
+      .map(reaction => reaction.emoji.id || reaction.emoji.name)
+      .filter((idOrName): idOrName is string => typeof idOrName === 'string')
+      .map(idOrName => this.list[idOrName]) 
 
     this.value = values.map(value => value.key)
     this.content = values.map(value => value.name)
