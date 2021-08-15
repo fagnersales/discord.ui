@@ -4,14 +4,20 @@ export const GenderList = () => new ListField({
   amount: {
     specified: 1
   },
-  description: 'Qual seu gênero?',
+  description: 'Qual seu gênero? (Selecione 1)',
   key: 'gender',
   name: 'Gênero',
   required: false,
   list: {
-    '🤓': 'sou nerd',
-    // '🐒': 'macaco',
-    // '🤣': 'pimpolho',
-    // '🐝': 'outro'
+    '🤓': {
+      key: 'nerd',
+      name: 'Nerd',
+      description: 'usuarios de oculos'
+    },
+    '🐒': {
+      key: 'monkey',
+      name: 'macaco',
+      description: 'fãs do muca'
+    },
   }
 })

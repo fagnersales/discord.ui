@@ -13,6 +13,10 @@ export const PreferencesList = () => new ListField({
       name: 'Macacos Não-Albinos',
       key: 'monkey'
     },
-    // '🤣': 'pimpolho'
+    '🤣': {
+      name: 'Pimpolho',
+      key: 'pimpolho',
+      description: 'os engraçaralhos!'
+    }
   }
 })
