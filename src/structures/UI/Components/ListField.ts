@@ -1,37 +1,23 @@
-import { MessageReaction, User } from 'discord.js'
-import { BaseConstructor, Base, BaseSetupDTO } from './Base'
+import { MessageActionRow, MessageSelectMenu, User } from 'discord.js'
+import { Base } from './Base'
 import { once } from 'events'
-import { hasClientReaction, isMessageUsable, reactedWithEmoji } from '@src/utils'
 
-export type ListFieldConstructor = BaseConstructor & {
-  key: string
-  list: Record<string, string | { name: string, key: string }>
-  required?: boolean
-  amount: {
-    specified: number
-    moreThan?: number
-  } | {
-    specified?: number
-    moreThan: number
-  }
-}
-
-export type ListFieldSetupDTO = BaseSetupDTO & {}
-
-export type ListFieldSetupOptions = Partial<{
-  confirmationEmoji: string
-  time: number
-}>
+import {
+  ListFieldConstructor,
+  ListFieldSetupDTO,
+  ListFieldSetupOptions,
+  ListElement
+} from './IListField'
 
 export class ListField extends Base {
   readonly key: ListFieldConstructor['key']
-  readonly list: Record<string, { name: string, key: string }>
+  readonly list: Record<string, ListElement>
   readonly amount: ListFieldConstructor['amount']
   
   private _required: boolean = true
   private _value: string[] = []
   private _activated: boolean = false
-  
+
   public content: string[] = []
   private _completed: boolean = false
 
@@ -51,7 +37,7 @@ export class ListField extends Base {
       } else {
         return ({ ...acc, [cur]: value })
       }
-    }, { } as Record<string, { name: string, key: string }>)
+    }, {} as Record<string, ListElement>)
   }
 
   get completed(): boolean {
@@ -94,83 +80,58 @@ export class ListField extends Base {
   }
 
   async setup(data: ListFieldSetupDTO, options?: ListFieldSetupOptions): Promise<boolean> {
-    const { channel, user } = data
-    const emojis = Object.keys(this.list)
-    const confirmEmoji = options?.confirmationEmoji ?? '✅'
+    this.on('stop', () => this.emit('done', false))
+    const selectorOptions = Object.keys(this.list)
+      .map((emoji) => {
+        return {
+          label: this.list[emoji].name,
+          value: this.list[emoji].key,
+          description: this.list[emoji].description,
+          emoji
+        }
+      })
 
-    const content = emojis
-      .map(emoji => `${emoji} ${this.list[emoji]?.name}`)
-      .join('\n')
+    const id = `${Date.now()}-selector`
 
-    const usedMessage = await channel.send(content)
+    const selector = new MessageSelectMenu()
+      .setCustomId(id)
+      .setPlaceholder(this.description)
+      .addOptions(selectorOptions)
 
-    Promise.all(emojis.map(async emoji => isMessageUsable(usedMessage) && usedMessage.react(emoji)))
-
-    const userReactions = () => {
-      const reactions = usedMessage.reactions.cache
-
-      return reactions.filter(reaction => (
-        reaction.users.cache.has(user.id) &&
-        !reactedWithEmoji(reaction, confirmEmoji)
-      ))
+    if (this.amount.specified) {
+      selector.setMinValues(this.amount.specified)
+      selector.setMaxValues(this.amount.specified)
     }
 
-    const canConfirm = () => {
-      const size = userReactions().size
-      if (!this._required && size === 0) return true 
-      if (this.amount.specified) return size === this.amount.specified
-      if (this.amount.moreThan) return size >= this.amount.moreThan 
-      return false
+    if (this.amount.moreThan) {
+      selector.setMinValues(this.amount.moreThan)
+      selector.setMaxValues(selector.options.length)
     }
 
-    const confirmFilter = (messageReaction: MessageReaction, reactedUser: User) => (
-      reactedUser.equals(user) &&
-      canConfirm() &&
-      reactedWithEmoji(messageReaction, confirmEmoji)
-    )
+    const selectorRow = new MessageActionRow().addComponents(selector)
 
-    const confirmCollector = usedMessage.createReactionCollector(
-      confirmFilter, { max: 1, time: options?.time }
-    )
+    data.messageToUse.client.on('interactionCreate', async (interaction) => {
+      if (interaction.isSelectMenu()) {
 
-    if (canConfirm()) isMessageUsable(usedMessage) && usedMessage.react(confirmEmoji)
+        this.value = interaction.values
+        this.content = interaction.values
+          .map(value => {
+            const option = selectorOptions.find(option => option.value === value)
+            return option ? option.label : null
+          })
+          .filter((label): label is string => label !== null)
 
-    const listFilter = (messageReaction: MessageReaction, reactedUser: User) => (
-      reactedUser.equals(user) &&
-      emojis.includes(messageReaction.emoji.id || messageReaction.emoji.name)
-    )
+        await interaction.update({ })
 
-    const listCollector = usedMessage.createReactionCollector(
-      listFilter, { dispose: true, time: options?.time }
-    )
-
-    const checkConfirmReaction = () => {
-      if (canConfirm()) {
-        isMessageUsable(usedMessage) && usedMessage.react(confirmEmoji)
         this._completed = true
-      } else {
-        const reaction = usedMessage.reactions.cache.find(reaction => (
-          hasClientReaction(reaction) &&
-          reactedWithEmoji(reaction, confirmEmoji)
-        ))
-
-        if (reaction) reaction?.users.remove(usedMessage.client.user?.id as string)
-
-        this._completed = false
+        this.emit('done')
       }
-    }
+    })
 
-    listCollector.on('collect', checkConfirmReaction)
-    listCollector.on('remove', checkConfirmReaction)
+    await once(this, 'done')
 
-    const result = await once(confirmCollector, 'end')
-
-    const values: ({ name: string, key: string })[] = userReactions().map(reaction => this.list[reaction.emoji.id || reaction.emoji.name]) 
-
-    this.value = values.map(value => value.key)
-    this.content = values.map(value => value.name)
-    this._completed = true
-
-    return (usedMessage.deletable && usedMessage.delete(), result[1] === 'limit')
+    return true
   }
 }
+
+export * from './IListField'

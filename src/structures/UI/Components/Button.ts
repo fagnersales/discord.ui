@@ -1,32 +1,11 @@
-import { isMessageUsable } from '@src/utils'
-import { Message, MessageReaction, User } from 'discord.js'
-import { once } from 'events'
+import {
+  ButtonConstructor,
+  ButtonInteractDTO,
+  ButtonInteractResult
+} from './IButton'
+
 import { UI } from '../UI'
-import { Base, BaseConstructor, BaseSetupDTO } from './Base'
-
-export type ButtonConstructor<Extra = any> = BaseConstructor & {
-  emoji: string
-  extra?: Extra
-  activated?: boolean
-}
-
-export type ButtonSetupDTO = BaseSetupDTO & {
-  usedMessage: Message
-}
-
-export type ButtonSetupOptions = {
-  time?: number
-}
-
-export type ButtonInteractDTO = {
-  user: User
-  usedMessage: Message
-}
-
-export type ButtonInteractResult = [
-  Message,
-  any
-]
+import { Base } from './Base'
 
 export abstract class Button<Extra = any> extends Base {
   readonly emoji: ButtonConstructor['emoji']
@@ -58,33 +37,11 @@ export abstract class Button<Extra = any> extends Base {
     return this.parent
   }
 
-
-  async setup({ usedMessage, user }: ButtonSetupDTO, options?: ButtonSetupOptions): Promise<boolean> {
-    await isMessageUsable(usedMessage) && usedMessage.react(this.emoji)
-
-    const collectorFilter = (messageReaction: MessageReaction, userReaction: User) => (
-      this.activated &&
-      user.equals(userReaction) &&
-      (messageReaction.emoji.id || messageReaction.emoji.name) === this.emoji
-    )
-
-    const collectorOptions = { max: 1, time: options?.time }
-
-    const collector = usedMessage.createReactionCollector(
-      collectorFilter,
-      collectorOptions
-    )
-
-    const result = await once(collector, 'end')
-
-    return result[1] === 'limit'
-  }
-
   deactivate() {
     this.emit('deactivated')
     this.activated = false
   }
-  
+
   activate() {
     this.emit('activated')
     this.activated = true
@@ -92,3 +49,5 @@ export abstract class Button<Extra = any> extends Base {
 
   abstract interact(data: ButtonInteractDTO): Promise<ButtonInteractResult>
 }
+
+export * from './IButton'
