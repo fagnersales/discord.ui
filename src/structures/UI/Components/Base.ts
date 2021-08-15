@@ -1,4 +1,3 @@
-import { TextChannel, User } from 'discord.js'
 import { EventEmitter } from 'events'
 import { Button } from './Button'
 import { ContentField } from './ContentField'
@@ -7,11 +6,6 @@ import { ListField } from './ListField'
 export type BaseConstructor = {
   name: string
   description: string
-}
-
-export type BaseSetupDTO = {
-  channel: TextChannel
-  user: User
 }
 
 export abstract class Base extends EventEmitter {
@@ -39,6 +33,4 @@ export abstract class Base extends EventEmitter {
   isListField(): this is ListField {
     return false
   }
-
-  abstract setup(data: BaseSetupDTO): Promise<boolean>
 }
