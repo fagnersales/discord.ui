@@ -13,7 +13,7 @@ export class ListField extends Base {
   readonly key: ListFieldConstructor['key']
   readonly list: Record<string, ListElement>
   readonly amount: ListFieldConstructor['amount']
-  
+
   private _required: boolean = true
   private _value: string[] = []
   private _activated: boolean = false
@@ -110,6 +110,10 @@ export class ListField extends Base {
 
     const selectorRow = new MessageActionRow().addComponents(selector)
 
+    await data.messageToUse.edit({
+      components: [...data.messageToUse.components, selectorRow]
+    })
+
     data.messageToUse.client.on('interactionCreate', async (interaction) => {
       if (interaction.isSelectMenu()) {
 
@@ -121,7 +125,7 @@ export class ListField extends Base {
           })
           .filter((label): label is string => label !== null)
 
-        await interaction.update({ })
+        await interaction.update({})
 
         this._completed = true
         this.emit('done')
