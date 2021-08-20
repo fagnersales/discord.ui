@@ -114,9 +114,15 @@ export class ListField extends Base {
       components: [...data.messageToUse.components, selectorRow]
     })
 
-    data.messageToUse.client.on('interactionCreate', async (interaction) => {
-      if (interaction.isSelectMenu()) {
+    const selectorCollector = data.messageToUse.createMessageComponentCollector({
+      componentType: 'SELECT_MENU',
+      filter: (interaction) => interaction.user.equals(data.user) && interaction.customId === id,
+      max: 1,
+      maxComponents: 1,
+    })
 
+    selectorCollector.once('collect', async (interaction) => {
+      if (interaction.isSelectMenu()) {
         this.value = interaction.values
         this.content = interaction.values
           .map(value => {
@@ -125,7 +131,7 @@ export class ListField extends Base {
           })
           .filter((label): label is string => label !== null)
 
-        await interaction.update({})
+        await interaction.update({ })
 
         this._completed = true
         this.emit('done')
