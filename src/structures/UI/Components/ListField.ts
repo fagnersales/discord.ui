@@ -110,8 +110,10 @@ export class ListField extends Base {
 
     const selectorRow = new MessageActionRow().addComponents(selector)
 
+    const oldComponents = [...data.messageToUse.components]
+
     await data.messageToUse.edit({
-      components: [...data.messageToUse.components, selectorRow]
+      components: [...oldComponents, selectorRow]
     })
 
     const selectorCollector = data.messageToUse.createMessageComponentCollector({
@@ -131,7 +133,9 @@ export class ListField extends Base {
           })
           .filter((label): label is string => label !== null)
 
-        await interaction.update({ })
+        await interaction.update({
+          components: oldComponents
+        })
 
         this._completed = true
         this.emit('done')
