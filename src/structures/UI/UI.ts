@@ -1,8 +1,19 @@
 import { EventEmitter, once } from 'events'
-import { Collection, Message, MessageActionRow, MessageButton, MessageComponentInteraction, MessageEmbed, TextChannel, User } from 'discord.js'
 import { Button, ListField } from './Components'
 import { ContentField, ContentFieldSetupOptions } from './Components'
 import { Base } from './Components/Base'
+
+import {
+  Collection,
+  Message,
+  MessageActionRow,
+  MessageButton,
+  MessageComponentInteraction,
+  MessageEmbed,
+  MessageEmbedOptions,
+  TextChannel,
+  User,
+} from 'discord.js'
 
 import {
   isMessageUsable,
@@ -14,6 +25,11 @@ import {
 
 export type UIConstructor = {
   components: Base[]
+  embed?: MessageEmbed | MessageEmbedOptions
+
+  handleContentField?: (contentField: ContentField) => string | null
+  handleListField?: (listField: ListField) => string | null
+  handleButton?: (button: Button) => string | null
 }
 
 export type UISetupDTO = {
@@ -33,6 +49,11 @@ export class UI extends EventEmitter {
   readonly listFields: ListField[]
   readonly contentFields: ContentField[]
   readonly buttons: Button[]
+  private _embed: MessageEmbed
+
+  private _handleContentField: Required<UIConstructor>['handleContentField']
+  private _handleListField: Required<UIConstructor>['handleListField']
+  private _handleButton: Required<UIConstructor>['handleButton']
 
   private children: UI | undefined
 
@@ -40,10 +61,33 @@ export class UI extends EventEmitter {
     super()
 
     Object.assign(this, data)
-
+    this._embed = new MessageEmbed(data.embed)
     this.listFields = filterListFields(this.components)
     this.contentFields = filterContentFields(this.components)
     this.buttons = filterButtons(this.components)
+
+    this._handleContentField = data.handleContentField
+      ? data.handleContentField
+      : (contentField) => {
+        const name = contentField.activated ? `**${contentField.name}**` : contentField.name
+        const required = contentField.required ? ':star:' : ''
+
+        return `${name}${required} \`\`\`\n${contentField.content}\`\`\``
+      }
+
+    this._handleListField = data.handleListField
+      ? data.handleListField
+      : (listField) => {
+        const name = listField.activated ? `**${listField.name}**` : listField.name
+        const required = listField.required ? ':star:' : ''
+        return `${name}${required} \`\`\`\n${listField.content.join(' | ') || '...'}\`\`\``
+      }
+
+    this._handleButton = data.handleButton
+      ? data.handleButton
+      : (button) => {
+        return `${button.emoji} - ${button.name} | ${button.description}\n`
+      }
   }
 
   setChildren(ui: UI): void {
@@ -95,40 +139,16 @@ export class UI extends EventEmitter {
     const generalFilter = genericFilter(data.user)
 
     const createEmbed = (): MessageEmbed => {
-      const embed = new MessageEmbed()
-        .setColor('RANDOM')
+      const embed = new MessageEmbed(this._embed)
 
-      const handleListFieldComponent = (component: ListField) => {
-        const name = component.activated ? `**${component.name}**` : component.name
-        const required = component.required ? ':star:' : ''
-
-        embed.setDescription(
-          (embed.description || '')
-          + `${name}${required} \`\`\`\n${component.content.join(' | ') || '...'}\`\`\``
-        )
-      }
-
-      const handleContentFieldComponent = (component: ContentField) => {
-        const name = component.activated ? `**${component.name}**` : component.name
-        const required = component.required ? ':star:' : ''
-
-        embed.setDescription(
-          (embed.description || '')
-          + `${name}${required} \`\`\`\n${component.content}\`\`\``
-        )
-      }
-
-      const handleButtonComponent = (component: Button) => {
-        embed.setDescription(
-          (embed.description || '')
-          + `${component.emoji} - ${component.name} | ${component.description}\n`
-        )
-      }
+      if (!embed.color) embed.setColor('RANDOM')
 
       for (const component of this.components) {
-        if (component.isListField()) handleListFieldComponent(component)
-        if (component.isContentField()) handleContentFieldComponent(component)
-        if (component.isButton()) handleButtonComponent(component)
+        const concatDescription = (str: string | null) => embed.setDescription((embed.description || '') + (str || ''))
+
+        if (component.isListField()) concatDescription(this._handleListField(component))
+        if (component.isContentField()) concatDescription(this._handleContentField(component))
+        if (component.isButton()) concatDescription(this._handleButton(component))
       }
 
       return embed
@@ -311,7 +331,7 @@ export class UI extends EventEmitter {
 
           if (reason === 'limit') {
             canBackButton.setDisabled(true)
-            
+
             await collected.first()?.update({
               components: [canBackRow()]
             })
@@ -322,11 +342,11 @@ export class UI extends EventEmitter {
             this.children?.contentFields.forEach(contentField => {
               contentField.emit('stop')
             })
-  
+
             this.children?.listFields.forEach(listField => {
               listField.emit('stop')
             })
-  
+
             this.setup({ ...data, messageToUse: usedMessage })
           }
         }
@@ -350,7 +370,7 @@ export class UI extends EventEmitter {
     //       buttonClicked.deactivate()
     //       this.activateAllButtons()
 
-          
+
     //     })
     //   }
 
