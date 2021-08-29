@@ -19,8 +19,7 @@ import {
   isMessageUsable,
   filterButtons,
   filterContentFields,
-  filterListFields,
-  genericFilter
+  filterListFields
 } from '../../utils'
 
 export type UIConstructor = {
@@ -136,7 +135,6 @@ export class UI extends EventEmitter {
   }
 
   async setup(data: UISetupDTO): Promise<Message> {
-    const generalFilter = genericFilter(data.user)
 
     const createEmbed = (): MessageEmbed => {
       const embed = new MessageEmbed(this._embed)
