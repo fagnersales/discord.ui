@@ -36,7 +36,6 @@ export class ContentField extends BaseContent {
     this._content = this.placeholder
   }
 
-  
   /* abstract method from Base */
   isContentField(): this is ContentField {
     return true
@@ -126,7 +125,7 @@ export class ContentField extends BaseContent {
 
         const deleteMessage = async (message: Message) => {
           try {
-            const fetchedMessage = await message.fetch(true) 
+            const fetchedMessage = await message.fetch(true)
             await fetchedMessage.delete()
           } catch (error) {
             if (error.message !== 'Unknown Message') {
@@ -168,13 +167,18 @@ export class ContentField extends BaseContent {
       await usedMessage.edit({ components: [confirmRow()] })
     })
 
-    usedMessage.client.on('interactionCreate', interaction => {
-      if (
+    const collector = usedMessage.createMessageComponentCollector({
+      max: 1,
+      time: 300000,
+      filter: (interaction) => (
+        interaction.user.equals(data.user) &&
         interaction.isButton() &&
-        interaction.customId.startsWith('confirm-content-field')
-      ) {
-        if (this.completed) this.emit('confirmed', true)
-      }
+        interaction.customId === confirmButton.customId
+      )
+    })
+
+    collector.on('collect', () => {
+      if (this.completed) this.emit('confirmed', true)
     })
 
     const [confirmed] = await once(this, 'confirmed') as [boolean]
